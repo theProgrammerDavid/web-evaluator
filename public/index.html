@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Web Evaluator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f4f4f5;
+      color: #18181b;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    #sidebar {
+      width: 260px;
+      min-width: 260px;
+      background: #fff;
+      border-right: 1px solid #e4e4e7;
+      display: flex;
+      flex-direction: column;
+      padding: 1.5rem 1rem;
+      gap: 0.5rem;
+      overflow-y: auto;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+    }
+
+    #sidebar h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: #a1a1aa; margin-bottom: 0.25rem; }
+
+    .sidebar-job {
+      display: block;
+      padding: 0.5rem 0.6rem;
+      border-radius: 6px;
+      text-decoration: none;
+      color: #18181b;
+      font-size: 0.825rem;
+      border: 1px solid transparent;
+      transition: background 0.1s;
+    }
+    .sidebar-job:hover { background: #f4f4f5; border-color: #e4e4e7; }
+    .sidebar-job.active { background: #ede9fe; border-color: #c4b5fd; color: #5b21b6; }
+    .sidebar-job .job-host { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sidebar-job .job-time { color: #a1a1aa; font-size: 0.75rem; margin-top: 0.1rem; }
+    #sidebar-empty { font-size: 0.8rem; color: #a1a1aa; padding: 0.5rem 0.6rem; }
+
+    #main {
+      flex: 1;
+      padding: 2rem;
+      overflow-y: auto;
+    }
+
+    h1 { font-size: 1.5rem; margin-bottom: 1.5rem; }
+    h2 { font-size: 1.1rem; margin-bottom: 0.75rem; }
+    h3 { font-size: 0.95rem; margin-bottom: 0.5rem; color: #52525b; }
+
+    .card {
+      background: #fff;
+      border: 1px solid #e4e4e7;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .form-row { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+
+    label { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.875rem; font-weight: 500; flex: 1; min-width: 180px; }
+
+    input {
+      border: 1px solid #d4d4d8;
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.9rem;
+      outline: none;
+    }
+    input:focus { border-color: #6366f1; box-shadow: 0 0 0 2px #e0e7ff; }
+
+    button {
+      background: #6366f1;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 0.6rem 1.4rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    button:disabled { background: #a5b4fc; cursor: not-allowed; }
+
+    #status {
+      font-size: 0.875rem;
+      color: #71717a;
+      margin-top: 0.75rem;
+      min-height: 1.25rem;
+    }
+
+    /* Responsiveness ratings */
+    .viewport-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+
+    .viewport-card {
+      border: 1px solid #e4e4e7;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .viewport-card-body { padding: 1rem; }
+
+    .viewport-screenshot {
+      width: 100%;
+      display: block;
+      border-bottom: 1px solid #e4e4e7;
+      cursor: zoom-in;
+    }
+
+    .screenshot-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.8);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      cursor: zoom-out;
+    }
+    .screenshot-modal.open { display: flex; }
+    .screenshot-modal img { max-width: 90vw; max-height: 90vh; border-radius: 6px; }
+
+    .rating-badge {
+      display: inline-block;
+      font-size: 1.25rem;
+      font-weight: 700;
+      padding: 0.15rem 0.6rem;
+      border-radius: 6px;
+      margin-bottom: 0.5rem;
+    }
+    .rating-high { background: #dcfce7; color: #16a34a; }
+    .rating-mid  { background: #fef9c3; color: #a16207; }
+    .rating-low  { background: #fee2e2; color: #dc2626; }
+
+    .summary { font-size: 0.875rem; color: #52525b; margin-bottom: 0.75rem; }
+
+    .issue {
+      background: #f4f4f5;
+      border-radius: 6px;
+      padding: 0.6rem 0.75rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.825rem;
+    }
+    .issue strong { display: block; margin-bottom: 0.2rem; }
+    .issue .fix { color: #6366f1; margin-top: 0.3rem; }
+
+    /* Spell check */
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 2px solid #e4e4e7; color: #71717a; font-weight: 600; }
+    td { padding: 0.6rem 0.75rem; border-bottom: 1px solid #f4f4f5; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .highlight { font-weight: 600; color: #6366f1; }
+
+    #results { display: none; }
+  </style>
+</head>
+<body>
+  <nav id="sidebar">
+    <h2>Past Jobs</h2>
+    <div id="sidebarList"><span id="sidebar-empty">No jobs yet.</span></div>
+  </nav>
+
+  <div id="main">
+  <h1>Web Evaluator</h1>
+  <p style="background:#fef9c3;border:1px solid #fde047;border-radius:6px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.875rem;line-height:1.8;color:#713f12;">
+    <strong>Proof of concept</strong> — self-hosted on a <a href="/image.png" target="_blank" style="color:#92400e;font-weight:600;">spare computer</a> at home. Each job takes approximately <strong>~10 seconds</strong> to complete.<br/>
+    Analysis is powered by <strong>GPT-4o</strong>. AI ratings are a rough signal — treat them as a starting point, not gospel.<br/>
+    <strong>Results are public.</strong> Anyone with a job link can view its screenshots and analysis. Do not submit confidential, private, or password-protected URLs. As this is a demo, submissions are rate limited to 5 per IP per minute.
+  </p>
+
+  <div class="card">
+    <div class="form-row">
+      <label>
+        URL
+        <input id="url" type="url" placeholder="https://example.com" />
+      </label>
+      <label>
+        Wait (ms)
+        <input id="waitMs" type="number" value="3000" min="0" />
+      </label>
+      <label>
+        Language
+        <input id="language" type="text" value="en" />
+      </label>
+    </div>
+    <label style="padding:10px;padding-left:0px;flex-direction:row;align-items:center;gap:0.5rem;min-width:auto;font-weight:400;">
+      <input type="checkbox" id="useHeatmap" style="width:auto;padding:0;border:none;box-shadow:none;" onchange="toggleHeatmapWarning(this.checked)" />
+      Use historical heatmap data to aid AI rating (if a previous crawl exists for this URL)
+    </label>
+    <p id="heatmapWarning" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:6px;padding:0.65rem 0.9rem;margin-bottom:0.75rem;font-size:0.825rem;line-height:1.6;color:#92400e;">
+      <strong>Heatmap mode is best suited for static pages.</strong> It is not designed for websites with dynamic or moving components (carousels, animations, live data), as these will produce noisy diffs that don't reflect real layout changes. If your site has animations, the crawler will likely capture them at different stages between runs, generating a heatmap that looks like something changed when it didn't . But this false positive is actually useful as it gives you a realistic preview of what the tool would look like detecting a genuine layout regression in a production setting.
+    </p>
+    <button id="submitBtn" onclick="submit()">Evaluate</button>
+    <div id="status"></div>
+  </div>
+
+  <div class="screenshot-modal" id="modal" onclick="closeModal()">
+    <img id="modalImg" src="" alt="Screenshot" />
+  </div>
+
+  <div id="results">
+    <div class="card">
+      <h2>Responsiveness Ratings</h2>
+      <div class="viewport-grid" id="ratingsContainer"></div>
+    </div>
+
+    <div class="card">
+      <h2>Spell Check Results</h2>
+      <div id="spellContainer"></div>
+    </div>
+  </div>
+
+  </div><!-- /main -->
+
+  <script>
+    function toggleHeatmapWarning(show) {
+      document.getElementById('heatmapWarning').style.display = show ? 'block' : 'none';
+    }
+
+    function ratingClass(r) {
+      if (r >= 8) return 'rating-high';
+      if (r >= 5) return 'rating-mid';
+      return 'rating-low';
+    }
+
+    function renderHighlights(text) {
+      return text.replace(/\*\*(.+?)\*\*/g, '<span class="highlight">$1</span>');
+    }
+
+    function setStatus(msg) {
+      document.getElementById('status').textContent = msg;
+    }
+
+    async function pollUntilDone(jobId) {
+      while (true) {
+        const res = await fetch(`/v1/crawler/${jobId}/status`);
+        const data = await res.json();
+
+        if (data.state === 'completed') return data.result;
+        if (data.state === 'failed') throw new Error(data.failedReason ?? 'Job failed');
+
+        if (data.state === 'waiting' && data.position != null) {
+          setStatus(`Position ${data.position} in queue — waiting...`);
+        } else {
+          setStatus(`Job ${jobId} — ${data.state}...`);
+        }
+        await new Promise(r => setTimeout(r, 2000));
+      }
+    }
+
+    function openModal(src) {
+      document.getElementById('modalImg').src = src;
+      document.getElementById('modal').classList.add('open');
+    }
+
+    function closeModal() {
+      document.getElementById('modal').classList.remove('open');
+    }
+
+    function renderRatings(ratings, screenshotUrls) {
+      const urlMap = Object.fromEntries(screenshotUrls.map(s => [s.viewport, s]));
+      const container = document.getElementById('ratingsContainer');
+      container.innerHTML = ratings.map(r => {
+        const s = urlMap[r.viewport];
+        const hasHeatmap = s?.heatmapUrl;
+        const diffBadge = s?.diff
+          ? (s.diff.non_zero_diff_found
+              ? `<span style="font-size:0.75rem;background:#fee2e2;color:#dc2626;padding:0.2rem 0.5rem;border-radius:4px;margin-left:0.5rem;">${s.diff.pixels_changed.toLocaleString()} px changed</span>`
+              : `<span style="font-size:0.75rem;background:#dcfce7;color:#16a34a;padding:0.2rem 0.5rem;border-radius:4px;margin-left:0.5rem;">No visual changes</span>`)
+          : '';
+        return `
+        <div class="viewport-card">
+          ${s?.url ? `
+            <div style="position:relative;">
+              <img class="viewport-screenshot" id="img-${r.viewport}" src="${s.url}" alt="${r.viewport}" onclick="openModal('${s.url}')" />
+              ${hasHeatmap ? `
+                <div style="position:absolute;top:0.5rem;right:0.5rem;display:flex;gap:10px;border-radius:6px;overflow:hidden;">
+                  <button onclick="switchImg('${r.viewport}','${s.url}')" style="font-size:0.75rem;padding:0.4rem 0.85rem;background:#fff;color:#18181b;border:none;cursor:pointer;font-weight:600;border-right:1px solid #e4e4e7;">Screenshot</button>
+                  <button onclick="switchImg('${r.viewport}','${s.heatmapUrl}')" style="font-size:0.75rem;padding:0.4rem 0.85rem;background:#fff;color:#dc2626;border:none;cursor:pointer;font-weight:600;">Heatmap</button>
+                </div>` : ''}
+            </div>` : ''}
+          <div class="viewport-card-body">
+            <div style="display:flex;align-items:center;flex-wrap:wrap;gap:0.3rem;margin-bottom:0.5rem;">
+              <span class="rating-badge ${ratingClass(r.rating)}" style="margin-bottom:0">${r.rating}/10</span>
+              ${diffBadge}
+            </div>
+            <h3>${r.viewport}</h3>
+            <p class="summary">${r.summary}</p>
+            ${r.issues.length === 0
+              ? '<p style="font-size:0.825rem;color:#16a34a">No issues found</p>'
+              : r.issues.map(i => `
+                <div class="issue">
+                  <strong>${i.element}</strong>
+                  <span>${i.problem}</span>
+                  <div class="fix">Fix: ${i.fix}</div>
+                </div>`).join('')
+            }
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    function switchImg(viewport, src) {
+      const img = document.getElementById(`img-${viewport}`);
+      img.src = src;
+      img.onclick = () => openModal(src);
+    }
+
+    function renderSpellCheck(results) {
+      const container = document.getElementById('spellContainer');
+      if (results.length === 0) {
+        container.innerHTML = '<p style="font-size:0.875rem;color:#16a34a">No spelling errors found.</p>';
+        return;
+      }
+      container.innerHTML = `
+        <table>
+          <thead><tr><th>Original</th><th>Corrected</th></tr></thead>
+          <tbody>
+            ${results.map(r => `
+              <tr>
+                <td>${r.sentence}</td>
+                <td>${renderHighlights(r.corrected)}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>`;
+    }
+
+    async function loadJob(jobId) {
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      document.getElementById('results').style.display = 'none';
+
+      try {
+        const result = await pollUntilDone(jobId);
+        renderRatings(result.responsivenessRatings, result.screenshotUrls);
+        renderSpellCheck(result.spellCheckResults);
+        document.getElementById('results').style.display = 'block';
+        setStatus('Done.');
+        loadSidebar();
+      } catch (err) {
+        setStatus(`Error: ${err.message}`);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function submit() {
+      const url = document.getElementById('url').value.trim();
+      const waitMs = parseInt(document.getElementById('waitMs').value);
+      const language = document.getElementById('language').value.trim();
+      const useHeatmap = document.getElementById('useHeatmap').checked;
+
+      if (!url) return setStatus('Please enter a URL.');
+
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      document.getElementById('results').style.display = 'none';
+      setStatus('Submitting...');
+
+      try {
+        const res = await fetch('/v1/crawler', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, waitMs, language, useHeatmap }),
+        });
+        const body = await res.json();
+        if (!res.ok) {
+          const message = body?.message ?? `Request failed (${res.status})`;
+          setStatus(`Error: ${typeof message === 'string' ? message : JSON.stringify(message)}`);
+          btn.disabled = false;
+          return;
+        }
+        const { jobId } = body;
+        history.pushState(null, '', `/job/${jobId}`);
+        setStatus(`Job ${jobId} queued — waiting for completion...`);
+        await loadJob(jobId);
+      } catch (err) {
+        setStatus(`Error: ${err.message}`);
+        btn.disabled = false;
+      }
+    }
+
+    function timeAgo(ts) {
+      const s = Math.floor((Date.now() - ts) / 1000);
+      if (s < 60) return `${s}s ago`;
+      if (s < 3600) return `${Math.floor(s/60)}m ago`;
+      if (s < 86400) return `${Math.floor(s/3600)}h ago`;
+      return `${Math.floor(s/86400)}d ago`;
+    }
+
+    async function loadSidebar() {
+      try {
+        const res = await fetch('/v1/crawler/jobs');
+        const jobs = await res.json();
+        const list = document.getElementById('sidebarList');
+        const activeJobId = window.location.pathname.match(/^\/job\/(.+)$/)?.[1];
+        if (!jobs.length) {
+          list.innerHTML = '<span id="sidebar-empty">No jobs yet.</span>';
+          return;
+        }
+        list.innerHTML = jobs.map(j => {
+          const host = (() => { try { return new URL(j.url).hostname; } catch { return j.url; } })();
+          const isActive = String(j.jobId) === String(activeJobId);
+          return `<a class="sidebar-job${isActive ? ' active' : ''}" href="/job/${j.jobId}">
+            <div class="job-host">${host}</div>
+            <div class="job-time">#${j.jobId} &middot; ${timeAgo(j.finishedAt)}</div>
+          </a>`;
+        }).join('');
+      } catch {}
+    }
+
+    loadSidebar();
+    setInterval(loadSidebar, 10000);
+
+    // Auto-load if navigated directly to /job/:jobId
+    const jobIdFromUrl = window.location.pathname.match(/^\/job\/(.+)$/)?.[1];
+    if (jobIdFromUrl) {
+      setStatus(`Loading job ${jobIdFromUrl}...`);
+      loadJob(jobIdFromUrl);
+    }
+  </script>
+</body>
+</html>

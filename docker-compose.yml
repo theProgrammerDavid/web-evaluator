@@ -1,0 +1,32 @@
+services:
+  app:
+    build: .
+    ports:
+      - "4000:4000"
+    env_file: .env
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      OLLAMA_BASE_URL: http://172.17.0.1:11434
+    volumes:
+      - screenshots:/app/screenshots
+      - screenshot_ratings:/app/screenshot_ratings
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  screenshots:
+  screenshot_ratings:
+  redis_data:
