@@ -225,6 +225,15 @@
       document.getElementById('heatmapWarning').style.display = show ? 'block' : 'none';
     }
 
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
     function ratingClass(r) {
       if (r >= 8) return 'rating-high';
       if (r >= 5) return 'rating-mid';
@@ -232,7 +241,7 @@
     }
 
     function renderHighlights(text) {
-      return text.replace(/\*\*(.+?)\*\*/g, '<span class="highlight">$1</span>');
+      return escapeHtml(text).replace(/\*\*(.+?)\*\*/g, '<span class="highlight">$1</span>');
     }
 
     function setStatus(msg) {
@@ -292,15 +301,15 @@
               <span class="rating-badge ${ratingClass(r.rating)}" style="margin-bottom:0">${r.rating}/10</span>
               ${diffBadge}
             </div>
-            <h3>${r.viewport}</h3>
-            <p class="summary">${r.summary}</p>
+            <h3>${escapeHtml(r.viewport)}</h3>
+            <p class="summary">${escapeHtml(r.summary)}</p>
             ${r.issues.length === 0
               ? '<p style="font-size:0.825rem;color:#16a34a">No issues found</p>'
               : r.issues.map(i => `
                 <div class="issue">
-                  <strong>${i.element}</strong>
-                  <span>${i.problem}</span>
-                  <div class="fix">Fix: ${i.fix}</div>
+                  <strong>${escapeHtml(i.element)}</strong>
+                  <span>${escapeHtml(i.problem)}</span>
+                  <div class="fix">Fix: ${escapeHtml(i.fix)}</div>
                 </div>`).join('')
             }
           </div>
@@ -326,7 +335,7 @@
           <tbody>
             ${results.map(r => `
               <tr>
-                <td>${r.sentence}</td>
+                <td>${escapeHtml(r.sentence)}</td>
                 <td>${renderHighlights(r.corrected)}</td>
               </tr>`).join('')}
           </tbody>
@@ -409,9 +418,9 @@
         list.innerHTML = jobs.map(j => {
           const host = (() => { try { return new URL(j.url).hostname; } catch { return j.url; } })();
           const isActive = String(j.jobId) === String(activeJobId);
-          return `<a class="sidebar-job${isActive ? ' active' : ''}" href="/job/${j.jobId}">
-            <div class="job-host">${host}</div>
-            <div class="job-time">#${j.jobId} &middot; ${timeAgo(j.finishedAt)}</div>
+          return `<a class="sidebar-job${isActive ? ' active' : ''}" href="/job/${encodeURIComponent(j.jobId)}">
+            <div class="job-host">${escapeHtml(host)}</div>
+            <div class="job-time">#${escapeHtml(j.jobId)} &middot; ${timeAgo(j.finishedAt)}</div>
           </a>`;
         }).join('');
       } catch {}
