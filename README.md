@@ -104,3 +104,7 @@ curl http://localhost:3000/v1/crawler/:jobId/status
 curl http://localhost:3000/v1/crawler/jobs
 ```
 
+## Credits
+
+- [png_diff](https://github.com/theProgrammerDavid/png_diff) — also by me
+- Built with assistance from [Claude](https://claude.ai) (Anthropic)
