@@ -13,8 +13,13 @@ Live demo: [webeval.davidvelho.com](https://webeval.davidvelho.com) — self-hos
    - Desktop 1920×1080
    - iPhone 16 Pro Max
 3. It extracts all visible text and runs it through an LLM to find spelling/grammar issues
+
+   ![Spell check results](assets/spell-check-1.png)
+
 4. It sends each screenshot to a vision model and asks it to rate responsiveness out of 10, with specific issues and suggested fixes
 5. Optionally, if you've crawled the same URL before, it diffs the screenshots using [png_diff](https://github.com/theProgrammerDavid/png_diff) and feeds the heatmap to the vision model so it can reason about what changed since the last crawl
+
+   ![Heatmap diff](assets/heatmap-1.png)
 
 Jobs are queued via Bull + Redis so it doesn't fall over if multiple people submit at once. Past results are public and browsable via the sidebar.
 
