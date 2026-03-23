@@ -93,7 +93,7 @@ Swagger docs: [http://localhost:3000/docs](http://localhost:3000/docs)
 
 ```bash
 # Submit a URL
-curl -X POST http://localhost:3000/v1/crawler \
+curl -X POST http://localhost:3000/v1/crawler/submit \
   -H "Content-Type: application/json" \
   -d '{"url": "https://example.com", "waitMs": 3000, "language": "en", "useHeatmap": false}'
 

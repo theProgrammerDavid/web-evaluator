@@ -107,7 +107,7 @@ export class CrawlerController {
         return this.websiteInputsQueue.getJobCounts();
     }
 
-    @Post()
+    @Post('submit')
     @ApiOperation({ summary: 'Add a URL to the crawl queue' })
     @ApiBody({ type: CrawlRequestDto })
     @ApiOkResponse({ type: AddToCrawlQueueResponse })
